@@ -44,22 +44,22 @@ def main():
                         help='Phương pháp lựa chọn coreset hoặc huấn luyện đầy đủ')
     parser.add_argument('--coreset_fraction', type=float, default=0.01, 
                         help='Tỷ lệ coreset mong muốn (ví dụ: 0.1, 0.3)')
-    parser.add_argument('--update_freq', type=int, default=5, 
-                        help='Tần suất cập nhật coreset (số epoch). Mặc định: 5')
-    parser.add_argument('--epochs', type=int, default=10, 
-                        help='Tổng số epoch để huấn luyện. Mặc định: 100')
+    parser.add_argument('--update_freq', type=int, default=50, 
+                        help='Tần suất cập nhật coreset (số epoch). Mặc định: 50')
+    parser.add_argument('--epochs', type=int, default=200, 
+                        help='Tổng số epoch để huấn luyện. Mặc định: 200')
     parser.add_argument('--lr', type=float, default=0.1, 
                         help='Tốc độ học ban đầu. Mặc định: 0.1')
     parser.add_argument('--batch_size', type=int, default=512, 
                         help='Kích thước mini-batch. Mặc định: 512')
-    parser.add_argument('--warmup_epochs', type=int, default=5, 
-                        help='Số epoch để khởi động tốc độ học. Mặc định: 5')
+    parser.add_argument('--warmup_epochs', type=int, default=20, 
+                        help='Số epoch để khởi động tốc độ học. Mặc định: 20')
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed for reproducibility')
     parser.add_argument('--gradient_type', type=str, default="logit", choices=["logit", "embedding"],
                         help='Phương pháp biểu diễn gradient. Mặc định là logit gradient')
-    parser.add_argument('--candidate_multiplier', type=int, default=3,
-                        help='Hệ số quy định số candidate_budget (candidate_budget = candidate_multiplier * budget). Mặc định : 3')
+    parser.add_argument('--candidate_multiplier', type=int, default=5,
+                        help='Hệ số quy định số candidate_budget (candidate_budget = candidate_multiplier * budget). Mặc định : 5')
     parser.add_argument('--coreset_lr_scale', type=float, default=0.1,
                     help='Hệ số giảm LR khi chuyển sang train bằng coreset. Ví dụ 0.1: LR 0.1 -> 0.01')
     parser.add_argument('--lr_gamma', type=float, default=0.1,
