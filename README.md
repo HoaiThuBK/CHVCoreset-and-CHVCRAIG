@@ -64,11 +64,13 @@ proceeds.
 - Packages: `numpy`, `torch`, `torchvision`, `scikit-learn`, `tqdm`
 
 ```bash
+# Linux / macOS
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
 
-# Create virtualenv and install package
-python3 -m venv .venv                 
-source .venv/bin/activate             
-pip install -r requirements.txt       
+# Windows
+py -m venv venv && venv\Scripts\activate
+py -m pip install -r requirements.txt
 ```
 ---
 
