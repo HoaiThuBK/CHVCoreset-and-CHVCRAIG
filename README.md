@@ -8,7 +8,7 @@ This repository contains the official implementation for the paper:
 ## 1. What each file does
 
 **Coreset-selection algorithms.**
-- `chvcoreset.py` — CHVS4 (Convex Hull Vertex Selection v4): approximates the
+- `chvcoreset.py` — Budgeted CHVS4 (Convex Hull Vertex Selection v4): approximates the
   convex hull of the per-class gradient representations. Builds an initial
   d-simplex (Wang 2013, Algorithm 1) and expands it facet-by-facet toward the
   farthest outlying point (Ding 2017, Algorithm 2–3). Source paper:
@@ -20,15 +20,11 @@ This repository contains the official implementation for the paper:
   `craig_greedy_cdist` (works on any gradient matrix) and
   `select_craig_coreset` (per-class driver for the full dataset).
 
-- `craigch.py` — CRAIG-CH: hybrid selection that narrows the candidate pool
+- `chvcraig.py` — CHV-CRAIG: hybrid selection that narrows the candidate pool
   with convex-hull vertices before/alongside running CRAIG's greedy selection
-  (driven by the `candidate_multiplier` parameter). *(Not included among the
-  files reviewed for docstrings in this conversation — described here only
-  from its usage in `coreset_selector.py`.)*
+  (driven by the `candidate_multiplier` parameter).
 
 - `random_selector.py` — uniform random per-class coreset baseline.
-  *(Not included among the files reviewed for docstrings in this
-  conversation.)*
 
 **Shared infrastructure.**
 - `coreset_selector.py` — `CoresetSelector`, a dispatcher class that wraps all
@@ -42,7 +38,7 @@ This repository contains the official implementation for the paper:
   (`compute_gradient_representations`, `logit` or `embedding` mode),
   `train_one_epoch` (supports per-sample weighted loss), `evaluate`, and
   `calculate_weights` (nearest-selected-point weighting used by
-  CRAIG/CHVS4/CRAIG-CH).
+  CRAIG/CHVCoreset/CHV-CRAIG).
 
 - `model_resnet.py` — ResNet-20 (CIFAR-style: 3 stages × 3 `BasicBlock`s,
   Kaiming init), with an `embedding()` method that exposes pre-logit features
@@ -70,16 +66,6 @@ proceeds.
 - Python 3.9+
 - Packages: `numpy`, `torch`, `torchvision`, `scikit-learn`, `tqdm`
 
-```bash
-# Linux / macOS
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-
-# Windows
-py -m venv venv && venv\Scripts\activate
-py -m pip install -r requirements.txt
-```
-
 ---
 
 ## 3. Folder layout
@@ -87,9 +73,9 @@ py -m pip install -r requirements.txt
 ```
 CHVCoreset-and-CHVCRAIG/
 ├── src/
-│   ├── chvs4.py                    # CHVS4 convex-hull vertex selection
+│   ├── chvcoreset.py               # Budgeted CHVS4 for coreset selection
 │   ├── craig.py                    # CRAIG greedy facility-location selection
-│   ├── craigch.py                  # CRAIG-CH hybrid selection
+│   ├── chvcraig.py                 # CHV-CRAIG hybrid selection
 │   ├── random_selector.py          # Random baseline selection
 │   ├── coreset_selector.py         # CoresetSelector dispatcher, WeightedSubsetDataset
 │   ├── utils.py                    # Data loading, gradient repr., train/eval loops
@@ -98,7 +84,7 @@ CHVCoreset-and-CHVCRAIG/
 │   ├── train_logreg_fmnist.py      # Driver: Logistic Regression on FashionMNIST
 │   ├── train_resnet20_cifar10.py   # Driver: ResNet-20 on CIFAR-10
 │   ├── train_resnet20_svhn.py      # Driver: ResNet-20 on SVHN
-├── README.md  
+├── README.md                       # this file
 ```
 
 `train_logreg_mnist.py`, `train_resnet20_cifar10.py`, and `train_resnet20_svhn.py` write their CSV results
@@ -114,10 +100,10 @@ under `results_mnist/<method>/`, `results_cifar10/<method>/` and `results_svhn/<
 python train_logreg_fmnist.py --selection_method craig --coreset_fraction 0.1
 
 # ResNet-20 on CIFAR-10, CHVS4 coreset at 5% of the data
-python train_resnet20_cifar10.py --selection_method chvs4 --coreset_fraction 0.05
+python train_resnet20_cifar10.py --selection_method chvcoreset --coreset_fraction 0.05
 
 # ResNet-20 on SVHN, CRAIG-CH coreset at 1% of the data
-python train_resnet20_svhn.py --selection_method craig_ch --coreset_fraction 0.01
+python train_resnet20_svhn.py --selection_method chv_craig --coreset_fraction 0.01
 
 # Full-dataset baseline (no coreset selection) for any driver
 python train_logreg_fmnist.py --selection_method full_dataset
@@ -127,23 +113,23 @@ python train_logreg_fmnist.py --selection_method full_dataset
 
 ## 5. Methods compared
 
-| Name         | Source file            | Description                                                        |
-|--------------|-------------------------|----------------------------------------------------------------------|
-| Full dataset | training drivers (`full_dataset`) | Baseline: train on the entire dataset every epoch          |
-| CRAIG        | `craig.py`               | Greedy facility-location coreset selection                       |
-| CHVS4        | `chvs4.py`                | Convex-hull vertex approximation per class (Wang 2013 + Ding 2017) |
-| CRAIG-CH     | `craigch.py`              | Hybrid: convex-hull candidate narrowing + CRAIG greedy selection  |
-| Random       | `random_selector.py`      | Uniform random per-class sampling baseline                        |
+| Name         | Source file                       | Description                                                          |
+|--------------|-----------------------------------|----------------------------------------------------------------------|
+| Full dataset | training drivers (`full_dataset`) | Baseline: train on the entire dataset every epoch                    |
+| CRAIG        | `craig.py`                        | Greedy facility-location coreset selection                           |
+| CHVCoreset   | `chvcoreset.py`                   | Budgeted Convex-hull vertex approximation per class                  |
+| CHV-CRAIG    | `chv_craig.py`                    | Hybrid: convex-hull candidate narrowing + CRAIG greedy selection     |
+| Random       | `random_selector.py`              | Uniform random per-class sampling baseline                           |
 
 ---
 
 ## 6. Datasets
 
-| Dataset      | Loader (in `utils.py`)  | Classes | Notes                                              |
-|--------------|--------------------------|--------:|-----------------------------------------------------|
-| FashionMNIST | `load_fashion_mnist_all` |      10 | Flattened 784-dim vectors; paired with Logistic Regression |
+| Dataset      | Loader (in `utils.py`)   | Classes | Notes                                                                    |
+|--------------|--------------------------|--------:|--------------------------------------------------------------------------|
+| FashionMNIST | `load_fashion_mnist_all` |      10 | Flattened 784-dim vectors; paired with Logistic Regression               |
 | CIFAR-10     | `load_cifar10_all`       |      10 | RandomCrop + HorizontalFlip augmentation on train; paired with ResNet-20 |
-| SVHN         | `load_svhn_all`          |      10 | RandomCrop augmentation on train; paired with ResNet-20  |
+| SVHN         | `load_svhn_all`          |      10 | RandomCrop augmentation on train; paired with ResNet-20                  |
 
 ---
 
@@ -156,9 +142,9 @@ epoch, loss, accuracy, lr, train_time_s, selection_time_s, coreset_size
 ```
 
 | Driver                        | Output path                                                                 |
-|--------------------------------|-------------------------------------------------------------------------------|
+|--------------------------------|-------------------------------------------------------------------------------------------------|
 | `train_logreg_fmnist.py`       | `results_mnist/<method>/results_mnist_logreg_<method>_<gradient_type>_seed<seed>[_frac<f>].csv` |
-| `train_resnet20_cifar10.py`    | `results_cifar10_resnet20_<method>_<gradient_type>[_frac<f>].csv` (current directory) |
+| `train_resnet20_cifar10.py`    | `results_cifar10_resnet20_<method>_<gradient_type>[_frac<f>].csv` (current directory)           |
 | `train_resnet20_svhn.py`       | `results_svhn/<method>/results_svhn_resnet20_<method>_<gradient_type>_seed<seed>[_frac<f>].csv` |
 
 ---
@@ -174,7 +160,7 @@ epoch, loss, accuracy, lr, train_time_s, selection_time_s, coreset_size
   `--coreset_lr_scale` cut once training switches to a coreset, with further
   step decays of `--lr_gamma` at 50% and 75% of `--epochs`. No `torch` LR
   scheduler object is used.
-- **Weighting.** CRAIG, CHVS4, and CRAIG-CH assign each selected sample a
+- **Weighting.** CRAIG, CHVCoreset, and CHV-CRAIG assign each selected sample a
   weight equal to the number of dataset points for which it is the nearest
   selected point (`calculate_weights` in `utils.py`); this weight is used in
   the per-sample-weighted loss during coreset training.
