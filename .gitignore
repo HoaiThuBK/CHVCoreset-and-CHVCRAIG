@@ -20,7 +20,7 @@ env/
 ENV/
 
 # ==========================================================
-# Dữ liệu (FashionMNIST / CIFAR-10 / SVHN) - do utils.py tự tải về
+# Data (FashionMNIST / CIFAR-10 / SVHN) - downloaded automatically by utils.py
 # ==========================================================
 data_mnist/
 data_cifar10/
@@ -30,7 +30,7 @@ data_svhn/
 *.tar.gz
 
 # ==========================================================
-# Kết quả huấn luyện (CSV output từ các script train_*.py)
+# CSV output from script train_*.py
 # ==========================================================
 results_mnist/
 results_svhn/
@@ -38,7 +38,7 @@ results_cifar10*/
 *.csv
 
 # ==========================================================
-# Checkpoint / trọng số mô hình
+# Checkpoint 
 # ==========================================================
 *.pt
 *.pth
@@ -50,8 +50,8 @@ checkpoints/
 # ==========================================================
 *.log
 logs/
-runs/          # TensorBoard logs (nếu có dùng)
-wandb/         # Weights & Biases logs (nếu có dùng)
+runs/         
+wandb/         
 
 # ==========================================================
 # Jupyter Notebook
