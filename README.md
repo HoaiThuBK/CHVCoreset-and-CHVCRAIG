@@ -9,10 +9,7 @@ This repository contains the official implementation for the paper:
 
 **Coreset-selection algorithms.**
 - `chvcoreset.py` — Budgeted CHVS4 (Convex Hull Vertex Selection v4): approximates the
-  convex hull of the per-class gradient representations. Builds an initial
-  d-simplex (Wang 2013, Algorithm 1) and expands it facet-by-facet toward the
-  farthest outlying point (Ding 2017, Algorithm 2–3). Source paper:
-  https://tinyurl.com/2h7madsu.
+  convex hull of the per-class gradient representations. 
 
 - `craig.py` — CRAIG greedy facility-location selection: repeatedly picks the
   candidate that most reduces the maximum distance from every point to its
