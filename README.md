@@ -69,18 +69,28 @@ proceeds.
 
 ```
 CHVCoreset-and-CHVCRAIG/
-├── src/
+├── src/                            # Main pipeline: selection algorithms, models
 │   ├── chvcoreset.py               # Budgeted CHVS4 for coreset selection
 │   ├── craig.py                    # CRAIG greedy facility-location selection
 │   ├── chvcraig.py                 # CHV-CRAIG hybrid selection
 │   ├── random_selector.py          # Random baseline selection
 │   ├── coreset_selector.py         # CoresetSelector dispatcher, WeightedSubsetDataset
 │   ├── utils.py                    # Data loading, gradient repr., train/eval loops
-│   ├── model_resnet.py             # ResNet-20 definition
-├── scripts/
+│   └── model_resnet.py             # ResNet-20 definition
+├── scripts/                        # Training scripts
 │   ├── train_logreg_fmnist.py      # Driver: Logistic Regression on FashionMNIST
 │   ├── train_resnet20_cifar10.py   # Driver: ResNet-20 on CIFAR-10
-│   ├── train_resnet20_svhn.py      # Driver: ResNet-20 on SVHN
+│   └── train_resnet20_svhn.py      # Driver: ResNet-20 on SVHN
+├── theory_exp/                     # Theory-verification measurements and ablations (Sections 3.1–3.2)
+│   ├── measure_theory.py           # Certificate eps_hat, coverage loss, gradient error, T_pool/T_greedy
+│   ├── ablation.py                 # alpha sweep (selection quality only, no training)
+│   ├── run_train_grid.py           # (alpha, Delta) vs accuracy/runtime grid
+│   ├── finalize_theory.py          # LaTeX table + figure + prose numbers from the CSVs
+│   ├── make_latex_tables.py        # Paste-ready LaTeX tables from the CSVs
+│   ├── theory_common.py            # Shared utilities (reuses the real pipeline)
+│   └── run_local.sh                # One-command Windows runner (venv + install + run)
+└── selection_metrics/              # Standalone selection-quality metrics package
+    └── selection_metrics.py        # eps_hat, coverage loss, covering radius under 4 distances
 ├── README.md                       # this file
 ```
 
