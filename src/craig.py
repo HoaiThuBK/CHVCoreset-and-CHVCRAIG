@@ -1,6 +1,6 @@
 """
 ---file craig.py---
-Chọn coreset bằng thuật toán CRAIG
+Select a coreset via CRAIG greedy facility-location
 """
 import time
 import torch
@@ -15,20 +15,18 @@ def craig_greedy_cdist(
     candidate_batch_size=512,
 ):
     """
-    Hàm chọn coreset bằng CRAIG greedy facility-location: lặp `budget` lần, mỗi lần chọn ứng
-    viên giúp giảm khoảng cách bình phương tối thiểu (min_dists) từ mọi điểm tới tập đã chọn
-    nhiều nhất (submodular greedy), tính theo batch bằng torch.cdist để tiết kiệm bộ nhớ.
-    :param gradients: Tensor gradient của tất cả các mẫu, kích thước (n, feature_dim).
-    :param budget: Số lượng mẫu cần chọn vào coreset.
-    :param candidate_indices_local: Danh sách chỉ số cục bộ (trong gradients) được phép chọn.Mặc định None nghĩa là dùng toàn bộ n mẫu làm ứng viên.
-    :param desc: Nhãn hiển thị trên thanh tiến trình (tqdm).
-    :param candidate_batch_size: Kích thước batch ứng viên khi tính cdist, giúp giảm bộ nhớ.
-    :return: Danh sách chỉ số cục bộ (trong gradients) của các mẫu được chọn vào coreset. Nếu budget >= số ứng viên, trả về luôn toàn bộ ứng viên (đã cắt theo budget).
+    Select a coreset via CRAIG greedy facility-location: iterate `budget` times, each time picking the candidate that most reduces the minimum squared
+    distances (min_dists) from every point to the selected set (submodular greedy), computed batch-by-batch with torch.cdist to save memory.
+
+    :param gradients: Gradient tensor of all samples, of shape (n, feature_dim).
+    :param budget: Number of samples to select into the coreset.
+    :param candidate_indices_local: List of local indices (into `gradients`) that are allowed to be selected. Default None means all n samples are used as candidates.
+    :param desc: Label shown on the progress bar (tqdm).
+    :param candidate_batch_size: Candidate batch size when computing cdist, used to reduce memory usage.
+    :return: List of local indices (into `gradients`) of the samples selected into the coreset. If budget >= the number of candidates, returns all candidates directly (trimmed to budget).
+
     """
-    # Nếu muốn CRAIG chạy trên CPU
     gradients = gradients.detach().cpu().float()
-    print(f"[CRAIG] gradients.device = {gradients.device}")
-    print(f"[CRAIG] gradients.shape  = {gradients.shape}")
     n = gradients.shape[0]
     if candidate_indices_local is None:
         candidate_indices_local = list(range(n))
@@ -80,7 +78,7 @@ def craig_greedy_cdist(
 
 
 def select_craig_coreset(
-    # Mode 1: CRAIG cho full dataset
+    # Mode 1: CRAIG for full dataset
     model,
     full_dataset,
     indices_by_class,
@@ -90,7 +88,7 @@ def select_craig_coreset(
     num_classes=10,
     batch_size=128,
 
-    # Mode 2: CRAIG dùng cho CRAIG-CH / CHVD-CRAIG
+    # Mode 2: CRAIG for CHV-CRAIG
     gradients=None,
     budget=None,
     candidate_indices_local=None,
@@ -100,29 +98,29 @@ def select_craig_coreset(
     candidate_batch_size=512,
 ):
     """
-    Hàm điều phối chọn coreset bằng CRAIG, hỗ trợ hai chế độ:
-    (1) chạy trên toàn bộ full_dataset theo từng lớp, tự tính gradient và ngân sách mỗi lớp;
-    (2) chạy trực tiếp trên ma trận `gradients`/`candidate_indices_local` có sẵn (dùng cho CRAIG-CH), gọi lại craig_greedy_cdist.
-    :param model: Mô hình dùng để tính gradient (chế độ 1).
-    :param full_dataset: Toàn bộ tập dữ liệu gốc (chế độ 1).
-    :param indices_by_class: Dict ánh xạ nhãn lớp -> danh sách chỉ số trong full_dataset (chế độ 1).
-    :param coreset_size_fraction: Tỷ lệ kích thước coreset so với full_dataset (chế độ 1).
-    :param device: Thiết bị (CPU/GPU) dùng khi tính gradient (chế độ 1).
-    :param gradient_type: Loại biểu diễn gradient cần tính (chế độ 1).
-    :param num_classes: Tổng số lớp trong tập dữ liệu (chế độ 1).
-    :param batch_size: Kích thước batch khi tính gradient (chế độ 1).
-    :param gradients: Ma trận gradient có sẵn; nếu khác None, hàm chuyển sang chế độ 2.
-    :param budget: Số lượng mẫu cần chọn (chế độ 2).
-    :param candidate_indices_local: Danh sách chỉ số ứng viên cục bộ trong gradients (chế độ 2).
-    :param desc: Nhãn hiển thị trên thanh tiến trình (chế độ 2).
-    :param candidate_batch_size: Kích thước batch ứng viên khi tính cdist.
+    Orchestrate coreset selection with CRAIG, supporting two modes:
+    (1) run over the entire `full_dataset` per class, computing the gradients and the per-class budget automatically;
+    (2) run directly on a precomputed `gradients` / `candidate_indices_local` matrix (used by CRAIG-CH), delegating to craig_greedy_cdist.
+
+    :param model: Model used to compute the gradients (mode 1).
+    :param full_dataset: The complete original dataset (mode 1).
+    :param indices_by_class: Dict mapping a class label -> list of indices into `full_dataset` (mode 1).
+    :param coreset_size_fraction: Coreset size as a fraction of `full_dataset` (mode 1).
+    :param device: Device (CPU/GPU) used when computing gradients (mode 1).
+    :param gradient_type: Type of gradient representation to compute (mode 1).
+    :param num_classes: Total number of classes in the dataset (mode 1).
+    :param batch_size: Batch size used when computing gradients (mode 1).
+    :param gradients: Precomputed gradient matrix; if not None, the function switches to mode 2.
+    :param budget: Number of samples to select (mode 2).
+    :param candidate_indices_local: List of local candidate indices into `gradients` (mode 2).
+    :param desc: Label shown on the progress bar (mode 2).
+    :param candidate_batch_size: Candidate batch size when computing cdist.
     :return:
-        - Chế độ 2: danh sách chỉ số cục bộ được chọn (kết quả trực tiếp từ craig_greedy_cdist).
-        - Chế độ 1: bộ ba (final_indices, final_weights, elapsed_time) — chỉ số toàn cục của
-          coreset, trọng số tương ứng, và thời gian thực hiện (giây).
+        - Mode 2: list of the selected local indices (returned directly from craig_greedy_cdist).
+        - Mode 1: a tuple ``(final_indices, final_weights, elapsed_time)`` — the global indices of the coreset, their corresponding weights, and the elapsed time (in seconds).
     """
     # ==========================================================
-    # Mode 2: CRAIG trên ma trận gradient/candidate có sẵn (sử dụng cho CRAIG-CH)
+    # Mode 2: CRAIG on gradient matrix/candidate (used for CHV-CRAIG)
     # ==========================================================
     if gradients is not None:
         return craig_greedy_cdist(
@@ -133,7 +131,7 @@ def select_craig_coreset(
             candidate_batch_size=candidate_batch_size)
 
     # ==========================================================
-    # Mode 1: CRAIG cho full dataset, chạy theo từng lớp
+    # Mode 1: CRAIG for full dataset, per-class
     # ==========================================================
     print(">>> Selecting coreset by CRAIG...")
     start_time = time.time()

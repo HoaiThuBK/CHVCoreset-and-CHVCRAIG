@@ -1,3 +1,11 @@
+"""
+---file coreset_selector.py---
+
+Dispatcher for coreset selection across multiple methods. Provides a `CoresetSelector` class that routes to the different selection 
+strategies (CRAIG, CHVCoreset, Random, CHV-CRAIG) behind a single `select` interface, plus a utility to evaluate coreset quality via the normalized
+gradient distance between the weighted coreset gradient and the full-dataset gradient. Also provides `set_seed` for reproducibility and a
+`WeightedSubsetDataset` that exposes the selected coreset (with per-sample weights) as a torch Dataset.
+"""
 import torch
 import numpy as np
 import random
@@ -5,13 +13,15 @@ from torch.utils.data import Dataset
 from utils import compute_gradient_representations
 from random_selector import select_random_coreset
 from craig import select_craig_coreset
-from chvs4 import select_chvs4_coreset
-from craigch import select_craig_ch_coreset
+from chvcoreset import select_chvcoreset
+from chv_craig import select_chv_craig_coreset
+
 
 def set_seed(seed: int):
     """
-    Hàm đặt seed cho các bộ sinh số ngẫu nhiên (random, numpy, torch, cudnn) để tái lập kết quả.
-    :param seed: Giá trị seed dùng để khởi tạo các bộ sinh số ngẫu nhiên.
+    Set the seed for the random number generators (random, numpy, torch, cudnn) to make results reproducible.
+
+    :param seed: Seed value used to initialize the random number generators.
     """
     random.seed(seed)
     np.random.seed(seed)
@@ -22,9 +32,10 @@ def set_seed(seed: int):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
+
 class CoresetSelector:
     """
-    Lớp điều phối việc chọn coreset theo nhiều phương pháp khác nhau (craig, chvs4, random, craig_ch).
+    Dispatcher class for coreset selection across several different methods (craig, chvcoreset, random, chv_craig).
     """
     def __init__(
         self,
@@ -41,18 +52,19 @@ class CoresetSelector:
         chvs4_epsilon=0.0
     ):
         """
-        Hàm khởi tạo, lưu lại các tham số dùng chung cho mọi phương pháp chọn coreset.
-        :param model: Mô hình dùng để tính gradient cho từng mẫu.
-        :param full_dataset: Toàn bộ tập dữ liệu gốc.
-        :param indices_by_class: Dict ánh xạ nhãn lớp sang danh sách chỉ số trong full_dataset.
-        :param coreset_size_fraction: Tỷ lệ kích thước coreset so với full_dataset.
-        :param device: Thiết bị (CPU/GPU) dùng khi tính gradient.
-        :param gradient_type: Loại biểu diễn gradient cần tính.
-        :param num_classes: Tổng số lớp trong tập dữ liệu.
-        :param candidate_multiplier: Hệ số nhân quy định số candidates, dùng cho phương pháp craig_ch.
-        :param random_state: Seed cho các bước ngẫu nhiên trong quá trình chọn coreset.
-        :param batch_size: Kích thước batch khi tính gradient.
-        :param chvs4_epsilon: Ngưỡng dừng epsilon dùng cho phương pháp chvs4/craig_ch.
+        Initialize and store the parameters shared by all coreset selection methods.
+
+        :param model: Model used to compute the per-sample gradients.
+        :param full_dataset: The complete original dataset.
+        :param indices_by_class: Dict mapping a class label to a list of indices into full_dataset.
+        :param coreset_size_fraction: Coreset size as a fraction of full_dataset.
+        :param device: Device (CPU/GPU) used when computing gradients.
+        :param gradient_type: Type of gradient representation to compute.
+        :param num_classes: Total number of classes in the dataset.
+        :param candidate_multiplier: Multiplier that controls the number of candidates, used by the craig_ch (chv_craig) method.
+        :param random_state: Seed for the randomized steps in the coreset selection process.
+        :param batch_size: Batch size used when computing gradients.
+        :param chvs4_epsilon: Epsilon stopping threshold used by the chvcoreset/chv_craig methods.
         """
         self.model = model
         self.full_dataset = full_dataset
@@ -68,9 +80,10 @@ class CoresetSelector:
 
     def select(self, method="craig"):
         """
-        Hàm chọn coreset bằng phương pháp được chỉ định.
-        :param method: Tên phương pháp chọn coreset ("craig", "chvs4", "random", "craig_ch").
-        :return: Kết quả trả về từ hàm select tương ứng với phương pháp đã chọn.
+        Select a coreset using the specified method.
+
+        :param method: Name of the coreset selection method ("craig", "chvcoreset", "random", "chv_craig").
+        :return: The value returned by the select function corresponding to the chosen method.
         """
         if method == "craig":
             return select_craig_coreset(
@@ -84,8 +97,8 @@ class CoresetSelector:
                 self.batch_size,
             )
         
-        elif method == "chvs4":
-            return select_chvs4_coreset(
+        elif method == "chvcoreset":
+            return select_chvcoreset(
                 self.model,
                 self.full_dataset,
                 self.indices_by_class,
@@ -110,8 +123,8 @@ class CoresetSelector:
                 self.random_state,
                 self.batch_size,
             )
-        elif method == "craig_ch":
-            return select_craig_ch_coreset(
+        elif method == "chv_craig":
+            return select_chv_craig_coreset(
                 self.model,
                 self.full_dataset,
                 self.indices_by_class,
@@ -125,14 +138,15 @@ class CoresetSelector:
                 self.chvs4_epsilon,
             )
         else:
-            raise ValueError(f"Phương pháp lựa chọn không hợp lệ: {method}")
+            raise ValueError(f"Invalid selection method: {method}")
         
     def compute_grad_dist_for_current_coreset(self, coreset_indices, coreset_weights):
         """
-        Hàm tính khoảng cách gradient chuẩn hóa giữa tổng gradient có trọng số của coreset và tổng gradient của toàn bộ tập dữ liệu, dùng để đánh giá chất lượng coreset.
-        :param coreset_indices: Danh sách chỉ số toàn cục của các mẫu trong coreset.
-        :param coreset_weights: Dict ánh xạ chỉ số toàn cục sang trọng số của mẫu trong coreset.
-        :return: Khoảng cách gradient chuẩn hóa (float); trả về 0.0 nếu coreset rỗng.
+        Compute the normalized gradient distance between the weighted total gradient of the coreset and the total gradient of the full dataset, used to assess coreset quality.
+
+        :param coreset_indices: List of global indices of the samples in the coreset.
+        :param coreset_weights: Dict mapping a global index to the weight of the corresponding sample in the coreset.
+        :return: The normalized gradient distance (float); returns 0.0 if the coreset is empty.
         """
         if not coreset_indices or not coreset_weights:
             return 0.0
@@ -181,31 +195,37 @@ class CoresetSelector:
         normalized_distance = gradient_distance / (full_gradient_norm + 1e-8)
         return normalized_distance
 
+
 class WeightedSubsetDataset(Dataset):
     """
-    Lớp Dataset bọc quanh full_dataset, chỉ chứa các mẫu thuộc coreset kèm theo trọng số tương ứng.
+    Dataset wrapper around full_dataset that contains only the samples belonging to the coreset, together with their corresponding weights.
     """
     def __init__(self, full_dataset, indices, weights):
         """
-        Hàm khởi tạo, lưu lại tập dữ liệu gốc cùng danh sách chỉ số và trọng số của coreset.
-        :param full_dataset: Toàn bộ tập dữ liệu gốc.
-        :param indices: Danh sách chỉ số toàn cục của các mẫu thuộc coreset.
-        :param weights: Dict ánh xạ chỉ số toàn cục sang trọng số của mẫu trong coreset.
+        Initialize and store the original dataset along with the coreset's list of indices and weights.
+
+        :param full_dataset: The complete original dataset.
+        :param indices: List of global indices of the samples belonging to the coreset.
+        :param weights: Dict mapping a global index to the weight of the corresponding sample in the coreset.
         """
         self.full_dataset = full_dataset
         self.indices = indices
         self.weights = weights
+
     def __len__(self):
         """
-        Hàm trả về số lượng mẫu trong coreset.
-        :return: Số lượng phần tử trong self.indices.
+        Return the number of samples in the coreset.
+
+        :return: The number of elements in self.indices.
         """
         return len(self.indices)
+
     def __getitem__(self, idx):
         """
-        Hàm lấy một mẫu (dữ liệu, nhãn, trọng số) theo chỉ số cục bộ trong coreset.
-        :param idx: Chỉ số cục bộ (vị trí trong self.indices) của mẫu cần lấy.
-        :return: Bộ ba (x, y, weight) gồm dữ liệu đầu vào, nhãn, và trọng số (dạng tensor).
+        Get one sample (data, label, weight) by its local index within the coreset.
+
+        :param idx: Local index (position in self.indices) of the sample to retrieve.
+        :return: A tuple (x, y, weight) of the input data, the label, and the weight (as a tensor).
         """
         global_idx = self.indices[idx]
         x, y = self.full_dataset[global_idx]

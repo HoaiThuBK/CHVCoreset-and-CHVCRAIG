@@ -1,16 +1,14 @@
-# Coreset Selection for Machine Learning: CHVS4, CRAIG, and CRAIG-CH
+# CHVCoreset and CHV-CRAIG
 
-Code for coreset-selection experiments that reduce a training set to a small,
-weighted subset while preserving model accuracy. Covers logistic regression on
-FashionMNIST and ResNet-20 on CIFAR-10 / SVHN, compared across four selection
-strategies (CHVS4, CRAIG, CRAIG-CH, Random) plus a full-dataset baseline.
+This repository contains the official implementation for the paper:
 
+> **Vu Hoai Thu, Nguyen Kieu Linh, Pham Thanh Hieu, CHVCoreset and CHV-CRAIG: Convex Hull Filtering for Scalable Gradient-Based Coreset Selection**
 ---
 
 ## 1. What each file does
 
 **Coreset-selection algorithms.**
-- `chvs4.py` — CHVS4 (Convex Hull Vertex Selection v4): approximates the
+- `chvcoreset.py` — CHVS4 (Convex Hull Vertex Selection v4): approximates the
   convex hull of the per-class gradient representations. Builds an initial
   d-simplex (Wang 2013, Algorithm 1) and expands it facet-by-facet toward the
   farthest outlying point (Ding 2017, Algorithm 2–3). Source paper:

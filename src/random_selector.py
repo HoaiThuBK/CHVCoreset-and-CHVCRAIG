@@ -1,6 +1,6 @@
 """
 ---file random_selector.py---
-Chọn coreset bằng phương pháp chọn ngẫu nhiên (random)
+Select a coreset via random 
 """
 
 import random

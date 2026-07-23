@@ -1,14 +1,15 @@
 """
----file craig.py---
-Chọn coreset bằng thuật toán kết hợp CRAIG-CH
+---file chv_craig.py---
+Orchestrate per-class coreset selection using CHV-CRAIG: first select `candidate` points with CHVCoreset, then run Greedy CRAIG over those
+candidates to obtain the final `budget` coreset.
 """
 import time
-from chvs4 import CHVS4_Algorithm3_Ding2017
+from chvcoreset import CHVS4_Algorithm3_Ding2017
 from utils import compute_gradient_representations, calculate_weights
 from craig import select_craig_coreset
 
 
-def select_craig_ch_coreset(
+def select_chv_craig_coreset(
         model, 
         full_dataset, 
         indices_by_class, 
@@ -21,21 +22,20 @@ def select_craig_ch_coreset(
         batch_size, 
         chvs4_epsilon=0.0):
     """
-    Hàm điều phối việc chọn coreset bằng CRAIG-CH theo từng lớp (class): Chọn các candidates budget bằng CHVS4, sau đó Greedy trên candidates bằng CRAIG để thu được budget coreset
-    :param model: Mô hình dùng để tính gradient cho từng mẫu.
-    :param full_dataset: Toàn bộ tập dữ liệu gốc.
-    :param indices_by_class: Dict ánh xạ nhãn lớp -> danh sách chỉ số (trong full_dataset).
-    :param coreset_size_fraction: Tỷ lệ kích thước coreset so với full_dataset.
-    :param device: Thiết bị (CPU/GPU) dùng khi tính gradient.
-    :param gradient_type: Loại biểu diễn gradient cần tính.
-    :param num_classes: Tổng số lớp trong tập dữ liệu.
-    :praram candidate_multiplier: Quy định số điểm candidates được chọn bằng CHVS4. 
-    :param random_state: Seed cho các bước ngẫu nhiên trong CHVS4.
-    :param batch_size: Kích thước batch khi tính gradient.
-    :param chvs4_epsilon: Ngưỡng dừng epsilon truyền vào CHVS4_Algorithm3_Ding2017.
-    :return: Bộ ba (final_indices, final_weights, elapsed_time) — chỉ số toàn cục của coreset, trọng số tương ứng, và thời gian thực hiện (giây).
+        :param model: Model used to compute the per-sample gradients.
+        :param full_dataset: The complete original dataset.
+        :param indices_by_class: Dict mapping a class label -> list of indices (into `full_dataset`).
+        :param coreset_size_fraction: Coreset size as a fraction of `full_dataset`.
+        :param device: Device (CPU/GPU) used when computing gradients.
+        :param gradient_type: Type of gradient representation to compute.
+        :param num_classes: Total number of classes in the dataset.
+        :param candidate_multiplier: Controls how many candidate points are selected by CHVCoreset.
+        :param random_state: Seed for the randomized steps in CHVCoreset.
+        :param batch_size: Batch size used when computing gradients.
+        :param chvs4_epsilon: Epsilon stopping threshold passed to CHVS4_Algorithm3_Ding2017.
+        :return: A tuple `(final_indices, final_weights, elapsed_time)` — the global indices of the coreset, their corresponding weights, and the elapsed time (in seconds).
     """
-    print(">>> Selecting coreset by CRAIG-CH...")
+    print(">>> Selecting coreset by CHV-CRAIG...")
     start_time = time.time()
     final_indices, final_weights = [], {}
     total_size = max(1, int(len(full_dataset) * coreset_size_fraction))
@@ -75,13 +75,13 @@ def select_craig_ch_coreset(
         num_unique_candidates = len(set(candidate_indices_local))
 
         print(
-            f"Class {c}: CHVS4 found {len(candidate_indices_local)} candidates "
+            f"Class {c}: CHVCoreset found {len(candidate_indices_local)} candidates "
             f"(unique={num_unique_candidates}) / "
             f"candidate_budget={candidate_budget}, final_budget={budget}, "
             f"class_samples={n_c}")
 
         if num_unique_candidates < len(candidate_indices_local):
-            print(f"Warning: duplicated CHVS4 candidates in class {c}")
+            print(f"Warning: duplicated CHVCoreset candidates in class {c}")
         if len(candidate_indices_local) == 0:
             continue
         if len(candidate_indices_local) <= budget:
@@ -99,7 +99,7 @@ def select_craig_ch_coreset(
                 gradients=gradients,
                 budget=budget,
                 candidate_indices_local=candidate_indices_local,
-                desc=f"CRAIG-CH for class {c}",
+                desc=f"CHV-CRAIG for class {c}",
                 candidate_batch_size=512)
 
         weights_local = calculate_weights(class_gradients=gradients, selected_local=selected_local)
@@ -108,6 +108,6 @@ def select_craig_ch_coreset(
             final_indices.append(global_idx)
             final_weights[global_idx] = float(weight)
         end_time = time.time()
-        print(f">>> CRAIG-CH selection done in {end_time - start_time:.2f}s")
+        print(f">>> CHV-CRAIG selection done in {end_time - start_time:.2f}s")
         print(f">>> Coreset size: {len(final_indices)}")
     return final_indices, final_weights, end_time - start_time

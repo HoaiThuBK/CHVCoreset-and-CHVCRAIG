@@ -1,12 +1,13 @@
 """
----file utils.py---
-Chứa một số hàm chuẩn bị cơ bản:
-- Load dữ liệu FashionMNIST 10 lớp
-- Load dữ liệu CIFAR-10 
-- Hàm lấy indices cho từng lớp
-- Hàm biểu diễn gradient
-- Định nghĩa hàm train mô hình trên một epoch
-- Hàm đánh giá độ chính xác 
+--- file utils.py ---
+
+Contains a few basic preparation utilities:
+- Load the FashionMNIST dataset (10 classes)
+- Load the CIFAR-10 dataset
+- Function to get the indices of each class
+- Gradient representation function
+- Definition of the function that trains the model for one epoch
+- Accuracy evaluation function
 """
 
 from __future__ import annotations
@@ -23,9 +24,10 @@ from sklearn.preprocessing import StandardScaler
 
 def load_fashion_mnist_all(data_root: str = "./data_mnist"):
     """
-    Hàm tải tập FashionMNIST (train + test), chuẩn hóa và flatten ảnh thành vector 784 chiều.
-    :param data_root: Thư mục lưu/tải dữ liệu FashionMNIST.
-    :return: Bộ đôi (trainset, testset) là hai đối tượng Dataset của torchvision.
+    Load the FashionMNIST dataset (train + test), normalize it, and flatten each image into a 784-dimensional vector.
+
+    :param data_root: Directory where the FashionMNIST data is stored/downloaded.
+    :return: A pair (trainset, testset) of two torchvision Dataset objects.
     """
     print(">>> Loading FashionMNIST with 10 classes...")
     transform = transforms.Compose([
@@ -52,9 +54,10 @@ def load_fashion_mnist_all(data_root: str = "./data_mnist"):
 
 def load_cifar10_all(data_root="./data_cifar10"):
     """
-    Hàm tải tập CIFAR-10 (train + test), có augmentation (crop, flip) cho tập train.
-    :param data_root: Thư mục lưu/tải dữ liệu CIFAR-10.
-    :return: Bộ đôi (trainset, testset) là hai đối tượng Dataset của torchvision.
+    Load the CIFAR-10 dataset (train + test), with augmentation (crop, flip) for the train set.
+
+    :param data_root: Directory where the CIFAR-10 data is stored/downloaded.
+    :return: A pair (trainset, testset) of two torchvision Dataset objects.
     """
     print(">>> Loading CIFAR-10...")
     transform_train = transforms.Compose([
@@ -83,9 +86,10 @@ def load_cifar10_all(data_root="./data_cifar10"):
 
 def load_svhn_all(data_root="./data_svhn"):
     """
-    Hàm tải tập SVHN (train + test), có augmentation crop cho tập train.
-    :param data_root: Thư mục lưu/tải dữ liệu SVHN.
-    :return: Bộ đôi (trainset, testset) là hai đối tượng Dataset của torchvision.
+    Load the SVHN dataset (train + test), with crop augmentation for the train set.
+
+    :param data_root: Directory where the SVHN data is stored/downloaded.
+    :return: A pair (trainset, testset) of two torchvision Dataset objects.
     """
     print(">>> Loading SVHN...")
     transform_train = transforms.Compose([
@@ -124,11 +128,12 @@ def load_svhn_all(data_root="./data_svhn"):
 @torch.no_grad()
 def dataset_to_tensors(dataset, batch_size: int = 2048, device: str | torch.device = "cpu"):
     """
-    Hàm gộp toàn bộ một Dataset thành hai tensor (X, y) bằng cách duyệt qua DataLoader.
-    :param dataset: Dataset cần chuyển thành tensor.
-    :param batch_size: Kích thước batch khi duyệt qua dataset.
-    :param device: Thiết bị (CPU/GPU) chứa tensor kết quả.
-    :return: Bộ đôi (X, y) là tensor dữ liệu (float32) và tensor nhãn (long).
+    Collapse an entire Dataset into two tensors (X, y) by iterating over a DataLoader.
+
+    :param dataset: The dataset to convert into tensors.
+    :param batch_size: Batch size used when iterating over the dataset.
+    :param device: Device (CPU/GPU) that holds the resulting tensors.
+    :return: A pair (X, y) of the data tensor (float32) and the label tensor (long).
     """
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
     X_list, y_list = [], []
@@ -141,10 +146,11 @@ def dataset_to_tensors(dataset, batch_size: int = 2048, device: str | torch.devi
 
 def get_indices_by_class(full_dataset, num_classes):
     """
-    Hàm nhóm chỉ số các mẫu trong full_dataset theo từng lớp nhãn.
-    :param full_dataset: Tập dữ liệu cần lấy chỉ số theo lớp (có targets/labels/tensors hoặc iterable).
-    :param num_classes: Tổng số lớp trong tập dữ liệu.
-    :return: Dict ánh xạ nhãn lớp sang danh sách chỉ số mẫu thuộc lớp đó.
+    Group the indices of the samples in full_dataset by their class label.
+
+    :param full_dataset: The dataset from which to get indices by class (having targets/labels/tensors, or otherwise iterable).
+    :param num_classes: Total number of classes in the dataset.
+    :return: Dict mapping a class label to the list of indices of the samples belonging to that class.
     """
     indices = {c: [] for c in range(num_classes)}
 
@@ -175,16 +181,17 @@ def compute_gradient_representations(
     return_device="cpu"
 ):
     """
-    Hàm tính biểu diễn gradient cho từng mẫu, dựa trên chênh lệch giữa xác suất dự đoán (softmax) và nhãn one-hot, theo kiểu "logit" hoặc "embedding".
-    :param model: Mô hình dùng để tính logits/embedding cho từng mẫu.
-    :param full_dataset: Toàn bộ tập dữ liệu gốc.
-    :param indices: Danh sách chỉ số các mẫu (trong full_dataset) cần tính gradient.
-    :param device: Thiết bị (CPU/GPU) dùng để chạy mô hình.
-    :param gradient_type: Loại biểu diễn gradient, "logit" hoặc "embedding".
-    :param batch_size: Kích thước batch khi duyệt qua các mẫu.
-    :param return_device: Thiết bị chứa tensor kết quả, "cpu" hoặc "device".
-    :return: Tensor gradient của các mẫu trong indices, kích thước (len(indices), feature_dim).
-        Trả về tensor rỗng nếu indices rỗng.
+    Compute a gradient representation for each sample, based on the difference between the predicted probabilities (softmax) and the one-hot label, in
+    either "logit" or "embedding" form.
+
+    :param model: Model used to compute the logits/embedding for each sample.
+    :param full_dataset: The complete original dataset.
+    :param indices: List of indices of the samples (in full_dataset) whose gradient is to be computed.
+    :param device: Device (CPU/GPU) used to run the model.
+    :param gradient_type: Type of gradient representation, "logit" or "embedding".
+    :param batch_size: Batch size used when iterating over the samples.
+    :param return_device: Device that holds the resulting tensor, "cpu" or "device".
+    :return: Gradient tensor of the samples in indices, of shape (len(indices), feature_dim). Returns an empty tensor if indices is empty.
     """
     if len(indices) == 0:
         out_device = device if return_device == "device" else "cpu"
@@ -226,15 +233,16 @@ def train_one_epoch(
     use_weights=True,
     grad_clip_norm=None):
     """
-    Hàm huấn luyện mô hình qua một epoch, hỗ trợ loss có trọng số theo mẫu (weighted coreset).
-    :param model: Mô hình cần huấn luyện.
-    :param dataloader: DataLoader cung cấp batch dữ liệu (có hoặc không kèm trọng số).
-    :param criterion: Hàm loss, trả về loss theo từng mẫu (reduction='none').
-    :param optimizer: Optimizer dùng để cập nhật tham số mô hình.
-    :param device: Thiết bị (CPU/GPU) dùng để huấn luyện.
-    :param use_weights: Nếu True, dataloader trả về thêm trọng số mẫu và loss được tính có trọng số.
-    :param grad_clip_norm: Ngưỡng clip gradient theo norm; None nghĩa là không clip.
-    :return: Bộ đôi (avg_loss, train_time) — loss trung bình mỗi batch và thời gian huấn luyện (giây).
+    Train the model for one epoch, supporting a per-sample weighted loss (weighted coreset).
+
+    :param model: The model to train.
+    :param dataloader: DataLoader providing the data batches (with or without weights).
+    :param criterion: Loss function that returns the per-sample loss (reduction='none').
+    :param optimizer: Optimizer used to update the model parameters.
+    :param device: Device (CPU/GPU) used for training.
+    :param use_weights: If True, the dataloader also returns per-sample weights and the loss is computed with weights.
+    :param grad_clip_norm: Gradient clipping threshold by norm; None means no clipping.
+    :return: A pair (avg_loss, train_time) — the average loss per batch and the training time (in seconds).
     """
     model.train()
     total_loss = 0.0
@@ -271,11 +279,12 @@ def train_one_epoch(
 @torch.no_grad()
 def evaluate(model, dataloader, device):
     """
-    Hàm đánh giá độ chính xác (accuracy) của mô hình trên một dataloader.
-    :param model: Mô hình cần đánh giá.
-    :param dataloader: DataLoader cung cấp batch dữ liệu (ảnh, nhãn) để đánh giá.
-    :param device: Thiết bị (CPU/GPU) dùng để chạy mô hình.
-    :return: Độ chính xác theo phần trăm (0.0 nếu dataloader rỗng).
+    Evaluate the accuracy of the model on a dataloader.
+
+    :param model: The model to evaluate.
+    :param dataloader: DataLoader providing the data batches (images, labels) for evaluation.
+    :param device: Device (CPU/GPU) used to run the model.
+    :return: The accuracy as a percentage (0.0 if the dataloader is empty).
     """
     model.eval()
     correct = 0
@@ -293,12 +302,12 @@ def evaluate(model, dataloader, device):
 
 def calculate_weights(class_gradients, selected_local):
     """
-    Hàm tính trọng số cho từng mẫu được chọn, bằng cách gán mỗi mẫu trong class_gradients cho
-    mẫu được chọn gần nhất (theo khoảng cách Euclid) rồi đếm số mẫu được gán cho từng mẫu chọn.
-    :param class_gradients: Ma trận gradient của tất cả các mẫu trong lớp, kích thước (n, dim).
-    :param selected_local: Danh sách chỉ số cục bộ các mẫu được chọn vào coreset.
-    :return: Dict ánh xạ chỉ số cục bộ mẫu được chọn sang trọng số (số mẫu được gán cho nó).
-        Trả về dict rỗng nếu selected_local rỗng.
+    Compute the weight of each selected sample by assigning every sample in class_gradients to its nearest selected sample (by Euclidean distance) and
+    then counting how many samples are assigned to each selected sample.
+
+    :param class_gradients: Gradient matrix of all samples in the class, of shape (n, dim).
+    :param selected_local: List of local indices of the samples selected into the coreset.
+    :return: Dict mapping the local index of a selected sample to its weight (the number of samples assigned to it). Returns an empty dict if selected_local is empty.
     """
     if len(selected_local) == 0:
         return {}

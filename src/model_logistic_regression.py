@@ -1,8 +1,9 @@
 """
 ---file logistic_regression.py---
-Định nghĩa mô hình Logistic Regression cho bài toán phân loại đa lớp:
-- Input: Ma trận đặc trưng: X (mỗi mẫu được đại diện bằng một vector đã flatten 28x28=784 chiều)
-- Output: logits = WX + b
+Logistic Regression model for multi-class classification:
+- Input: feature matrix X (each sample is represented as a flattened
+  feature vector).
+- Output: logits = WX + b.
 
 """
 

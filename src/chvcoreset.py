@@ -1,7 +1,7 @@
 """
----file chvs4.py---
-Code thuật toán CHVS4 (Convex Hull Coreset Selection version 4) tìm các đỉnh của bao lồi
-Source paper: https://tinyurl.com/2h7madsu
+---file chvcoreset.py---
+Convex-Hull-based coreset selection (CHVCoreset). This module approximates the convex hull of a set of gradient representations
+and uses its vertices as a coreset.
 """
 import numpy as np
 import time
@@ -14,12 +14,12 @@ from sklearn.decomposition import PCA
 
 def dist_point_to_linear_subspace(p_vec: np.ndarray, basis_vectors_matrix: np.ndarray) -> float:
     """
-    Hàm tính khoảng cách từ một điểm đến không gian con tuyến tính sinh bởi các vector cơ sở.
-    (Dựa trên Wang 2013, Equation 2. Cần cho select_initial_simplex_Wang2013)
-    :param p_vec: Vector điểm cần tính khoảng cách (u trong bài báo), đã tịnh tiến về gốc x0.
-    :param basis_vectors_matrix: Ma trận vector cơ sở (U trong bài báo), mỗi cột một vector.
-    :return: Khoảng cách Euclid từ p_vec đến không gian con. Trả về chuẩn của p_vec nếu
-        basis_vectors_matrix rỗng hoặc gặp lỗi nghịch đảo.
+    Compute the distance from a point to the linear subspace spanned by a set of basis vectors.
+    (Based on Wang 2013, Equation 2. Required by select_initial_simplex_Wang2013.)
+
+    :param p_vec: The point vector whose distance is computed (``u`` in the paper), already translated to the origin ``x0``.
+    :param basis_vectors_matrix: Matrix of basis vectors (``U`` in the paper), one vector per column.
+    :return: The Euclidean distance from ``p_vec`` to the subspace. 
     """
     t = basis_vectors_matrix.shape[1]
     if t == 0: return norm(p_vec)
@@ -34,21 +34,21 @@ def dist_point_to_linear_subspace(p_vec: np.ndarray, basis_vectors_matrix: np.nd
 
 def select_initial_simplex_Wang2013(P: np.ndarray, budget: int = -1, random_state: int | None = None) -> list[int]:
     """
-    Hàm: Chọn d+1 đỉnh khởi tạo cho một d-simplex xấp xỉ bao lồi của tập điểm P,
-    theo Algorithm 1 của Wang (2013), bằng cách lặp lại việc tìm điểm xa nhất so với
-    không gian con hiện có cho đến khi đủ đỉnh hoặc hết ngân sách.
-    :param P: Ma trận tất cả các điểm trong tập dữ liệu, kích thước (n, d).
-    :param budget: Số điểm tối đa được chọn. Mặc định -1 là không giới hạn.
-    :param random_state: Seed cho bộ sinh số ngẫu nhiên.
-    :return: Danh sách chỉ số (trong P) của các đỉnh simplex khởi tạo.
+    Select the d+1 initial vertices of a d-simplex that approximates the convex hull of the point set P, following Algorithm 1 of Wang (2013), 
+    by repeatedly finding the point farthest from the current subspace until enough vertices are collected or the budget is exhausted.
+
+    :param P: Matrix of all points in the dataset, of shape (n, d).
+    :param budget: Maximum number of points to select. Default -1 means no limit.
+    :param random_state: Seed for the random number generator.
+    :return: List of indices (into P) of the initial simplex vertices.
     """
     rng = random.Random(random_state)
     n, d = P.shape
     if n <= d:
-        warnings.warn(f"Số điểm ({n}) không đủ để tạo simplex. Trả về tất cả.")
+        warnings.warn(f"The number of points ({n}) is not enough to create a simplex. Return all.")
         return list(range(n))
     if budget != -1 and n > budget and d > budget:
-         warnings.warn(f"Budget ({budget}) nhỏ hơn số chiều ({d}). Trả về {budget} điểm ngẫu nhiên.")
+         warnings.warn(f"Budget({budget}) is less than the dimension({d}). Returns {budget} random points.")
          return rng.sample(range(n), budget)
     rand_idx = rng.randint(0, n - 1)
     x0 = P[rand_idx, :]
@@ -92,14 +92,13 @@ def select_initial_simplex_Wang2013(P: np.ndarray, budget: int = -1, random_stat
 
 def partition_points_Wang2013(P: np.ndarray, p_indices_to_partition: list[int], simplex_indices: list[int]) -> list[list[int]]:
     """
-    Hàm: Phân hoạch các điểm vào từng mặt (facet) của một d-simplex, dựa trên tọa độ tỷ cự
-    (barycentric coordinates): điểm p được gán vào phần ứng với mặt đối diện đỉnh có tọa độ
-    tỷ cự âm nhỏ nhất; điểm nằm trong/trên simplex thì không được gán vào phần nào.
-    :param P: Ma trận tất cả các điểm trong tập dữ liệu, kích thước (n, d).
-    :param p_indices_to_partition: Danh sách chỉ số các điểm cần phân hoạch.
-    :param simplex_indices: Danh sách d+1 chỉ số đỉnh tạo thành simplex làm cơ sở phân hoạch.
-    :return: Danh sách (d+1) phần, mỗi phần là danh sách chỉ số điểm thuộc mặt đối diện
-        đỉnh tương ứng trong simplex_indices.
+    Partition points into the facets of a d-simplex based on their barycentric coordinates: a point p is assigned to the region corresponding to the facet
+    opposite the vertex for which it has the smallest (most negative) barycentric coordinate; points lying inside/on the simplex are not assigned to any region.
+
+    :param P: Matrix of all points in the dataset, of shape (n, d).
+    :param p_indices_to_partition: List of indices of the points to partition.
+    :param simplex_indices: List of d+1 vertex indices forming the simplex used as the basis for the partition.
+    :return: List of (d+1) regions, where each region is a list of point indices belonging to the facet opposite the corresponding vertex in ``simplex_indices``.
     """
     num_vertices = len(simplex_indices)
     d = P.shape[1]
@@ -120,10 +119,10 @@ def partition_points_Wang2013(P: np.ndarray, p_indices_to_partition: list[int], 
 
 def get_facets_indices(simplex_indices: list[int]) -> list[list[int]]:
     """
-    Hàm lấy chỉ số đỉnh của tất cả các mặt (facet) của một d-simplex: mỗi mặt là simplex con
-    gồm d đỉnh còn lại sau khi loại bỏ một đỉnh.
-    :param simplex_indices: Các chỉ số của d+1 đỉnh tạo thành simplex.
-    :return: Danh sách d+1 mặt, mỗi mặt là danh sách d chỉ số đỉnh.
+    Get the vertex indices of all facets of a d-simplex: each facet is the sub-simplex formed by the remaining d vertices after removing one vertex.
+
+    :param simplex_indices: The indices of the d+1 vertices forming the simplex.
+    :return: List of d+1 facets, where each facet is a list of d vertex indices.
     """
     facets = []
     for i in range(len(simplex_indices)):
@@ -132,15 +131,13 @@ def get_facets_indices(simplex_indices: list[int]) -> list[list[int]]:
 
 def compute_projection_distance_dp(x: np.ndarray, S_points_matrix: np.ndarray) -> float:
     """
-    Hàm tính khoảng cách từ một điểm x đến siêu phẳng (hyperplane) sinh bởi d điểm đầu tiên của
-    S_points_matrix, dùng làm xấp xỉ khoảng cách từ x đến mặt (facet) của bao lồi.
-    (Dựa trên Algorithm 2 Computation of the Distance Between a Point and a Hyperplane của Ding 2017)
-    :param x: Điểm cần tính khoảng cách.
-    :param S_points_matrix: Ma trận các điểm định nghĩa mặt/siêu phẳng (S trong Algorithm 2),
-        mỗi hàng là một điểm, kích thước (n_S, d).
-    :return: Khoảng cách từ x đến siêu phẳng. Nếu S_points_matrix rỗng hoặc thiếu điểm để xác
-        định siêu phẳng, trả về xấp xỉ bằng khoảng cách nhỏ nhất đến từng điểm; nếu suy biến,
-        trả về np.inf.
+    Compute the distance from a point x to the hyperplane spanned by the first d points of S_points_matrix, used as an approximation of the distance from x to
+    a facet of the convex hull. (Based on Algorithm 2, "Computation of the Distance Between a Point and a Hyperplane", of Ding 2017.)
+
+    :param x: The point whose distance is computed.
+    :param S_points_matrix: Matrix of points defining the facet/hyperplane (S in Algorithm 2), one point per row, of shape (n_S, d).
+    :return: The distance from x to the hyperplane. If S_points_matrix is empty or lacks enough points to define the hyperplane, returns an approximation
+        based on the smallest distance to each individual point; if the system is degenerate, returns np.inf.
     """
     n_S, d = S_points_matrix.shape
     if n_S == 0: return norm(x) 
@@ -160,14 +157,15 @@ def compute_projection_distance_dp(x: np.ndarray, S_points_matrix: np.ndarray) -
 
 def CHVS4_Algorithm3_Ding2017(P: np.ndarray, epsilon: float = 0.0, budget: int = -1, random_state: int | None = None,) -> np.ndarray:
     """
-    Hàm chính của thuật toán CHVS4 (Algorithm 3 của Ding 2017): xấp xỉ bao lồi của tập điểm P
-    bằng cách khởi tạo một d-simplex rồi lặp lại việc thêm điểm xa mặt hiện tại nhất vào tập
-    đỉnh, "phình" simplex ra ngoài cho đến khi đạt epsilon, hết ngân sách, hoặc hết điểm mở rộng.
-    :param P: Ma trận tất cả các điểm trong tập dữ liệu, kích thước (n, d).
-    :param epsilon: Ngưỡng dừng: dừng khi khoảng cách xa nhất còn lại <= epsilon.
-    :param budget: Số đỉnh tối đa được chọn. Mặc định -1 là không giới hạn.
-    :param random_state: Seed cho bộ sinh số ngẫu nhiên, dùng khi chọn simplex khởi tạo.
-    :return: Mảng chỉ số (trong P) của các điểm được chọn làm đỉnh xấp xỉ bao lồi.
+    Main routine of the CHVS4 algorithm (Algorithm 3 of Ding 2017): approximate the convex hull of the point set P by initializing a d-simplex and then
+    repeatedly adding the point farthest from the current facets to the vertex set, "inflating" the simplex outward until epsilon is reached, the budget is
+    exhausted, or no expanding point remains.
+
+    :param P: Matrix of all points in the dataset, of shape (n, d).
+    :param epsilon: Stopping threshold: stop when the largest remaining distance is <= epsilon.
+    :param budget: Maximum number of vertices to select. Default -1 means no limit.
+    :param random_state: Seed for the random number generator, used when selecting the initial simplex.
+    :return: Array of indices (into P) of the points selected as vertices of the approximate convex hull.
     """
     n, d = P.shape
     if n <= d + 1: return np.array(list(range(n)))
@@ -230,7 +228,7 @@ def CHVS4_Algorithm3_Ding2017(P: np.ndarray, epsilon: float = 0.0, budget: int =
     return np.array(final_indices_list)
 
 
-def select_chvs4_coreset(
+def select_chvcoreset(
         model, 
         full_dataset, 
         indices_by_class, 
@@ -243,24 +241,24 @@ def select_chvs4_coreset(
         log_selected_indices=True,
     ):
     """
-    Hàm điều phối việc chọn coreset bằng CHVS4 theo từng lớp (class): tính ngân sách cho mỗi
-    lớp theo tỷ lệ coreset_size_fraction, tính gradient của các mẫu trong lớp, rồi gọi
-    CHVS4_Algorithm3_Ding2017 để chọn đỉnh bao lồi xấp xỉ làm đại diện; bù/cắt cho đúng ngân
-    sách nếu thiếu/thừa, và tính trọng số (weight) bằng calculate_weights.
-    :param model: Mô hình dùng để tính gradient cho từng mẫu.
-    :param full_dataset: Toàn bộ tập dữ liệu gốc.
-    :param indices_by_class: Dict ánh xạ nhãn lớp -> danh sách chỉ số (trong full_dataset).
-    :param coreset_size_fraction: Tỷ lệ kích thước coreset so với full_dataset.
-    :param device: Thiết bị (CPU/GPU) dùng khi tính gradient.
-    :param gradient_type: Loại biểu diễn gradient cần tính.
-    :param num_classes: Tổng số lớp trong tập dữ liệu.
-    :param random_state: Seed cho các bước ngẫu nhiên trong CHVS4.
-    :param batch_size: Kích thước batch khi tính gradient.
-    :param chvs4_epsilon: Ngưỡng dừng epsilon truyền vào CHVS4_Algorithm3_Ding2017.
-    :param log_selected_indices: Nếu True, in log chỉ số cục bộ/toàn cục được chọn.
-    :return: Bộ ba (final_indices, final_weights, elapsed_time) — chỉ số toàn cục của coreset, trọng số tương ứng, và thời gian thực hiện (giây).
+    Orchestrate per-class coreset selection using CHVCoreset: compute the budget for each class according to `coreset_size_fraction`, compute the gradients of
+    the samples in the class, then call CHVS4_Algorithm3_Ding2017 to select the approximate convex-hull vertices as representatives; pad/trim to match the
+    exact budget if there are too few/too many, and compute the weights via `calculate_weights`.
+
+    :param model: Model used to compute the per-sample gradients.
+    :param full_dataset: The complete original dataset.
+    :param indices_by_class: Dict mapping a class label -> list of indices (into `full_dataset`).
+    :param coreset_size_fraction: Coreset size as a fraction of `full_dataset`.
+    :param device: Device (CPU/GPU) used when computing gradients.
+    :param gradient_type: Type of gradient representation to compute.
+    :param num_classes: Total number of classes in the dataset.
+    :param random_state: Seed for the randomized steps in CHVS4.
+    :param batch_size: Batch size used when computing gradients.
+    :param chvs4_epsilon: Epsilon stopping threshold passed to CHVS4_Algorithm3_Ding2017.
+    :param log_selected_indices: If True, log the selected local/global indices.
+    :return: A tuple ``(final_indices, final_weights, elapsed_time)`` — the global indices of the coreset, their corresponding weights, and the elapsed time (in seconds).
     """
-    print(">>> Selecting coreset by CHVS4...")
+    print(">>> Selecting coreset by CHVCoreset...")
     start_time = time.time()
     final_indices, final_weights = [], {}
     total_size = max(1, int(len(full_dataset) * coreset_size_fraction))
@@ -279,7 +277,7 @@ def select_chvs4_coreset(
         class_indices = indices_by_class[c]
         if budget <= 0 or len(class_indices) == 0:
             continue
-        print(f"\n>>> CHVS4 for class {c}: budget={budget}, samples={len(class_indices)}")
+        print(f"\n>>> CHVCoreset for class {c}: budget={budget}, samples={len(class_indices)}")
 
         class_gradients = compute_gradient_representations(model=model, full_dataset=full_dataset, indices=class_indices, device=device, gradient_type=gradient_type, batch_size=batch_size)
 
@@ -293,7 +291,7 @@ def select_chvs4_coreset(
             selected_local = CHVS4_Algorithm3_Ding2017(P=X, epsilon=chvs4_epsilon, budget=budget, random_state=random_state).astype(int).tolist()
             selected_local = list(dict.fromkeys(selected_local))
             print(
-                f"Class {c}: CHVS4 selected {len(selected_local)} vertices "
+                f"Class {c}: CHVCoreset selected {len(selected_local)} vertices "
                 f"/ budget={budget}")
             if len(selected_local) < budget:
                 selected_set = set(selected_local)
@@ -310,7 +308,7 @@ def select_chvs4_coreset(
 
         selected_global = [class_indices[i] for i in selected_local]
         if log_selected_indices:
-            print(f"\n[CHVS4 selected indices] class={c}")
+            print(f"\n[CHVCoreset selected indices] class={c}")
             print(f"local_indices : {selected_local}")
             print(f"global_indices: {selected_global}")
         
@@ -325,11 +323,11 @@ def select_chvs4_coreset(
             final_weights[global_idx] = float(weight)
 
     end_time = time.time()
-    print(f"\n>>> CHVS4 selection done in {end_time - start_time:.2f}s")
+    print(f"\n>>> CHVCoreset selection done in {end_time - start_time:.2f}s")
     print(f">>> Coreset size: {len(final_indices)}")
 
     if log_selected_indices:
-        print("\n[CHVS4 final coreset global indices]")
+        print("\n[CHVCoreset final coreset global indices]")
         print(final_indices)
 
     return final_indices, final_weights, end_time - start_time
