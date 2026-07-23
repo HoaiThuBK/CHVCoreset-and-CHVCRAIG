@@ -1,0 +1,7 @@
+# Required for --selftest (NumPy-only invariant check)
+numpy>=1.21
+
+# Required for measurement on real datasets:
+torch>=1.12          # FashionMNIST, CIFAR-10 (logit-gradient extraction)
+torchvision>=0.13    # FashionMNIST / CIFAR-10 download
+scikit-learn>=1.0    # Covtype (fetch_covtype, StandardScaler)

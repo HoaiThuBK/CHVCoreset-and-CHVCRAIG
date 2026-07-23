@@ -1,0 +1,9 @@
+# Core dependencies for the CHVCoreset / CHV-CRAIG experiments.
+numpy>=1.21
+scikit-learn>=1.0
+tqdm
+
+# PyTorch (choose the CUDA build matching your driver if training on GPU):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+torch>=1.12
+torchvision>=0.13

@@ -47,7 +47,7 @@ def main():
     parser = argparse.ArgumentParser(description='Coreset training with ResNet-20 on CIFAR-10 (10 classes)')
 
     # --- Define the command-line arguments ---
-    parser.add_argument('--selection_method', type=str, default='full_dataset', 
+    parser.add_argument('--selection_method', type=str, default='chvcoreset', 
                         choices=['craig', 'chvcoreset', 'full_dataset', 'random','chv_craig'], 
                         help='Coreset selection method, or full-dataset training')
     parser.add_argument('--coreset_fraction', type=float, default=0.01, 

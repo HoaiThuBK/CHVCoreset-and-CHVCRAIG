@@ -51,7 +51,7 @@ def main():
     parser = argparse.ArgumentParser(description='Coreset training with Logistic Regression on FashionMNIST (10 classes)')
 
     # --- Define the command-line arguments ---
-    parser.add_argument('--selection_method', type=str, default='full_dataset', 
+    parser.add_argument('--selection_method', type=str, default='random', 
                         choices=['craig', 'chvcoreset', 'full_dataset', 'random','chv_craig'], 
                         help='Coreset selection method, or full-dataset training')
     parser.add_argument('--coreset_fraction', type=float, default=0.01, 
