@@ -85,20 +85,20 @@ py -m pip install -r requirements.txt
 ## 3. Folder layout
 
 ```
-.
-├── chvs4.py                    # CHVS4 convex-hull vertex selection
-├── craig.py                    # CRAIG greedy facility-location selection
-├── craigch.py                  # CRAIG-CH hybrid selection
-├── random_selector.py          # Random baseline selection
-├── coreset_selector.py         # CoresetSelector dispatcher, WeightedSubsetDataset
-├── utils.py                    # Data loading, gradient repr., train/eval loops
-├── model_resnet.py             # ResNet-20 definition
-├── model_logistic_regression.py# Logistic Regression definition
-├── train_logreg_fmnist.py      # Driver: Logistic Regression on FashionMNIST
-├── train_resnet20_cifar10.py   # Driver: ResNet-20 on CIFAR-10
-├── train_resnet20_svhn.py      # Driver: ResNet-20 on SVHN
-├── requirements.txt
-└── README.md                   # this file
+CHVCoreset-and-CHVCRAIG/
+├── src/
+│   ├── chvs4.py                    # CHVS4 convex-hull vertex selection
+│   ├── craig.py                    # CRAIG greedy facility-location selection
+│   ├── craigch.py                  # CRAIG-CH hybrid selection
+│   ├── random_selector.py          # Random baseline selection
+│   ├── coreset_selector.py         # CoresetSelector dispatcher, WeightedSubsetDataset
+│   ├── utils.py                    # Data loading, gradient repr., train/eval loops
+│   ├── model_resnet.py             # ResNet-20 definition
+├── scripts/
+│   ├── train_logreg_fmnist.py      # Driver: Logistic Regression on FashionMNIST
+│   ├── train_resnet20_cifar10.py   # Driver: ResNet-20 on CIFAR-10
+│   ├── train_resnet20_svhn.py      # Driver: ResNet-20 on SVHN
+├── README.md  
 ```
 
 `train_logreg_mnist.py`, `train_resnet20_cifar10.py`, and `train_resnet20_svhn.py` write their CSV results
