@@ -11,7 +11,7 @@ SELECTION-QUALITY metrics as a function of alpha, WITHOUT full training:
 
 This directly supports the claim that larger alpha buys a richer pool (smaller
 eps_hat / gradient error) at higher selection cost -- i.e. it justifies the
-default alpha=5 as a trade-off. Reuses the real CHVS4 pipeline via
+default alpha=5 as a trade-off. Reuses the real CHVCoreset pipeline via
 measure_theory.
 
 For the alpha- and Delta-vs-ACCURACY ablation (which needs full training), use

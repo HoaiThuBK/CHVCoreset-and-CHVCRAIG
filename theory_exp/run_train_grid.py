@@ -61,8 +61,8 @@ def collect(csv_path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset", required=True, choices=list(SPEC.keys()))
-    ap.add_argument("--method", default="craig_ch",
-                    choices=["craig_ch", "chvs4", "craig"])
+    ap.add_argument("--method", default="chvcoreset",
+                    choices=["chv_craig", "chvcoreset", "craig"])
     ap.add_argument("--alphas", nargs="+", type=int, default=[3, 5, 10])
     ap.add_argument("--deltas", nargs="+", type=int, default=[40])
     ap.add_argument("--fractions", nargs="+", type=float, default=[0.03])
@@ -71,7 +71,7 @@ def main():
     ap.add_argument("--warmup", type=int, default=None)
     ap.add_argument("--gradient_type", default="logit")
     ap.add_argument("--device", default="cuda")   # forwarded via CUDA_VISIBLE_DEVICES only
-    ap.add_argument("--code_dir", default="../chv_craig")
+    ap.add_argument("--code_dir", default="../src")
     ap.add_argument("--python", default=sys.executable)
     ap.add_argument("--outcsv", default="out_ablation/train_grid.csv")
     ap.add_argument("--archive_dir", default="out_ablation/train_grid_runs")

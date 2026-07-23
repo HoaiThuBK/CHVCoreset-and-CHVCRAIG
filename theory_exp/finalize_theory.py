@@ -66,7 +66,7 @@ def fmt(m, s, nseed, dec):
 
 def latex_table(R):
     lines = [r"\begin{table}[t]", r"\centering",
-             r"\caption{Theory-linked quantities measured with the CHVS4 pipeline "
+             r"\caption{Theory-linked quantities measured with the CHVCoreset pipeline "
              r"across three datasets ($\alpha=5$). $\widehat\varepsilon_c$ is the a "
              r"posteriori certificate of Proposition~\ref{prop:certificate} (weighted "
              r"mean over classes); $L_c^{\mathrm{CHV}}/L_c^{\mathrm{CRAIG}}$ is the "

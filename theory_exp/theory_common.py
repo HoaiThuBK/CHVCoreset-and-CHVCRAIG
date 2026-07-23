@@ -6,17 +6,17 @@ theory_common.py
 Shared utilities for the theory-verification experiments (§3.1) and the
 alpha/Delta ablation (§3.2) of the CHVCoreset / CHV-CRAIG paper.
 
-Everything here reuses the ACTUAL experiment pipeline in `CRAIG-CH-main`
-(the same `chvs4.py`, `craig.py`, `utils.py` used to produce the paper's
+Everything here reuses the ACTUAL experiment pipeline in `src/`
+(the same `chvcoreset.py`, `craig.py`, `utils.py` used to produce the paper's
 results), so the measured quantities are faithful to the method:
 
-  * candidate pool H_c  = CHVS4_Algorithm3_Ding2017(Z_c, budget = alpha*r_c)   [chvs4.py]
+  * candidate pool H_c  = CHVS4_Algorithm3_Ding2017(Z_c, budget = alpha*r_c)    [chvcoreset.py]
   * coreset      S_c    = craig_greedy_cdist(Z_c, r_c, candidates = H_c)        [craig.py]
   * count weights gamma = calculate_weights(Z_c, S_c)                           [utils.py]
   * logit gradients z_i = softmax(logits) - onehot(y_i)                         [utils.py]
 
 The per-class budget r_c and its remainder distribution replicate
-`craigch.select_craig_ch_coreset` exactly.
+`chv_craig.select_chv_craig_coreset` exactly.
 
 Reported theory quantities (Euclidean distance d(z_i,z_j)=||z_i-z_j||_2,
 as in the manuscript; note the selection code itself minimises d^2, which
@@ -37,43 +37,39 @@ import numpy as np
 
 
 # --------------------------------------------------------------------------- #
-#  Locate and import the real pipeline (CRAIG-CH-main)                         #
+#  Locate and import the real pipeline                          #
 # --------------------------------------------------------------------------- #
 
 def ensure_pipeline_on_path(code_dir: str | None = None) -> str:
-    """Make the main pipeline (chv_craig / CRAIG-CH-main) importable and
-    return its path.
+    """Make the main pipeline (chv_craig / src) importable and return its path.
 
-    Search order: explicit code_dir, then `../chv_craig` (repository layout),
-    then `../CRAIG-CH-main` (legacy layout). If only the zip
-    `CRAIG-CH-main.zip` is present, extract it next to it.
     """
     here = os.path.dirname(os.path.abspath(__file__))
     candidates = []
     if code_dir:
         candidates.append(code_dir)
     candidates += [
-        os.path.join(os.path.dirname(here), "chv_craig"),
-        os.path.join(here, "CRAIG-CH-main"),
-        os.path.join(os.path.dirname(here), "CRAIG-CH-main"),
+        os.path.join(os.path.dirname(here), "src"),
+        os.path.join(here, "src"),
+        os.path.join(os.path.dirname(here), "src"),
     ]
     for c in candidates:
-        if os.path.isfile(os.path.join(c, "chvs4.py")):
+        if os.path.isfile(os.path.join(c, "chvcoreset.py")):
             if c not in sys.path:
                 sys.path.insert(0, c)
             return c
     # try extracting the zip found in parent (Experiment_Results_New)
     parent = os.path.dirname(here)
-    zpath = os.path.join(parent, "CRAIG-CH-main.zip")
+    zpath = os.path.join(parent, "src.zip")
     if os.path.isfile(zpath):
         with zipfile.ZipFile(zpath) as z:
             z.extractall(parent)
-        c = os.path.join(parent, "CRAIG-CH-main")
-        if os.path.isfile(os.path.join(c, "chvs4.py")):
+        c = os.path.join(parent, "src")
+        if os.path.isfile(os.path.join(c, "chvcoreset.py")):
             sys.path.insert(0, c)
             return c
     raise FileNotFoundError(
-        "Could not find CRAIG-CH-main (with chvs4.py). Pass --code_dir "
+        "Could not find src (with chvcoreset.py). Pass --code_dir "
         "pointing to the extracted pipeline folder.")
 
 

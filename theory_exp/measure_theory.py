@@ -3,7 +3,7 @@
 measure_theory.py  --  Experiments for manuscript section 3.1
 =============================================================
 
-Measures, with the ACTUAL CHVS4 pipeline, the theory-linked quantities that
+Measures, with the ACTUAL CHVCoreset pipeline, the theory-linked quantities that
 connect the analysis to the experiments:
 
     * eps_hat_c        computable a posteriori certificate (Prop. certificate)
@@ -11,9 +11,9 @@ connect the analysis to the experiments:
     * gradient error   relative ||sum z - sum gamma z|| / ||sum z||
                        (Lemma "coverage loss controls the logit-gradient error"
                         + End-to-end corollary), for CHV-CRAIG vs CRAIG
-    * selection times  T_pool (CHVS4) and T_greedy
+    * selection times  T_pool (CHVCoreset) and T_greedy
 
-Selection uses the real pipeline: CHVS4_Algorithm3_Ding2017 for the candidate
+Selection uses the real pipeline: Budgeted CHVS4_Algorithm3_Ding2017 for the candidate
 pool H_c (budget alpha*r_c), craig_greedy_cdist for the coreset S_c, and
 calculate_weights for the count weights -- so numbers are faithful to the paper.
 
@@ -61,10 +61,10 @@ def farthest_first_pool(Znp, k, rng):
 
 def measure_dataset(dataset, fractions, seeds, alpha, warmup_epochs, device,
                     code_dir, data_root, selection_no_aug, chvs4_epsilon=0.0,
-                    pool_method="chvs4"):
+                    pool_method="chvcoreset"):
     import torch
     from utils import get_indices_by_class, compute_gradient_representations, calculate_weights
-    from chvs4 import CHVS4_Algorithm3_Ding2017
+    from chvcoreset import CHVS4_Algorithm3_Ding2017
     from craig import craig_greedy_cdist
 
     per_class_rows, summary_rows = [], []
@@ -112,7 +112,7 @@ def measure_dataset(dataset, fractions, seeds, alpha, warmup_epochs, device,
                 r_c = min(r_c, n_c)
                 k_H = int(min(n_c, max(r_c, alpha * r_c)))
 
-                # ---- pool generation (chvs4 = real pipeline; random/ff = M1 ablation) ----
+                # ---- pool generation (chvcoreset = real pipeline; random/ff = M1 ablation) ----
                 t0 = time.time()
                 if pool_method == "random":
                     rng = np.random.default_rng(seed * 100003 + int(c))
@@ -120,7 +120,7 @@ def measure_dataset(dataset, fractions, seeds, alpha, warmup_epochs, device,
                 elif pool_method == "ff":
                     rng = np.random.default_rng(seed * 100003 + int(c))
                     H_local = farthest_first_pool(Znp, k_H, rng)
-                else:  # "chvs4"
+                else:  # "chvcoreset"
                     H_local = CHVS4_Algorithm3_Ding2017(
                         Znp, epsilon=chvs4_epsilon, budget=k_H, random_state=seed
                     ).astype(int).tolist()
@@ -237,8 +237,8 @@ def main():
     ap.add_argument("--code_dir", default=None, help="path to the main pipeline folder (chv_craig)")
     ap.add_argument("--data_root", default="./data")
     ap.add_argument("--outdir", default="out_theory")
-    ap.add_argument("--pool", default="chvs4", choices=["chvs4", "random", "ff"],
-                    help="candidate-pool generator: chvs4 (real pipeline), "
+    ap.add_argument("--pool", default="chvcoreset", choices=["chvcoreset", "random", "ff"],
+                    help="candidate-pool generator: chvcoreset (real pipeline), "
                          "random (M1 ablation), ff (farthest-first, M1 ablation)")
     ap.add_argument("--select-on-augmented", action="store_true",
                     help="select on the augmented trainset exactly like the train scripts "
@@ -254,7 +254,7 @@ def main():
             warm.get(ds.lower(), 10), args.device, args.code_dir, args.data_root,
             selection_no_aug=not args.select_on_augmented,
             pool_method=args.pool)
-        suffix = "" if args.pool == "chvs4" else f"_{args.pool}"
+        suffix = "" if args.pool == "chvcoreset" else f"_{args.pool}"
         write_csv(pc, os.path.join(args.outdir, f"theory_perclass_{ds}{suffix}.csv"))
         write_csv(sm, os.path.join(args.outdir, f"theory_summary_{ds}{suffix}.csv"))
     print("\nDone. CSVs in", os.path.abspath(args.outdir))

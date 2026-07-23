@@ -63,6 +63,13 @@ proceeds.
 - Python 3.9+
 - Packages: `numpy`, `torch`, `torchvision`, `scikit-learn`, `tqdm`
 
+```bash
+
+# Create virtualenv and install package
+python3 -m venv .venv                 
+source .venv/bin/activate             
+pip install -r requirements.txt       
+
 ---
 
 ## 3. Folder layout
@@ -104,16 +111,16 @@ under `results_mnist/<method>/`, `results_cifar10/<method>/` and `results_svhn/<
 
 ```bash
 # Logistic Regression on FashionMNIST, CRAIG coreset at 10% of the data
-python train_logreg_fmnist.py --selection_method craig --coreset_fraction 0.1
+python scripts/train_logreg_fmnist.py --selection_method craig --coreset_fraction 0.1
 
 # ResNet-20 on CIFAR-10, CHVS4 coreset at 5% of the data
-python train_resnet20_cifar10.py --selection_method chvcoreset --coreset_fraction 0.05
+python scripts/train_resnet20_cifar10.py --selection_method chvcoreset --coreset_fraction 0.05
 
 # ResNet-20 on SVHN, CRAIG-CH coreset at 1% of the data
-python train_resnet20_svhn.py --selection_method chv_craig --coreset_fraction 0.01
+python scripts/train_resnet20_svhn.py --selection_method chv_craig --coreset_fraction 0.01
 
 # Full-dataset baseline (no coreset selection) for any driver
-python train_logreg_fmnist.py --selection_method full_dataset
+python scripts/train_logreg_fmnist.py --selection_method full_dataset
 ```
 
 ---
@@ -148,7 +155,7 @@ Each training driver writes one CSV with the columns:
 epoch, loss, accuracy, lr, train_time_s, selection_time_s, coreset_size
 ```
 
-| Driver                        | Output path                                                                 |
+| Driver                         | Output path                                                                                     |
 |--------------------------------|-------------------------------------------------------------------------------------------------|
 | `train_logreg_fmnist.py`       | `results_mnist/<method>/results_mnist_logreg_<method>_<gradient_type>_seed<seed>[_frac<f>].csv` |
 | `train_resnet20_cifar10.py`    | `results_cifar10_resnet20_<method>_<gradient_type>[_frac<f>].csv` (current directory)           |

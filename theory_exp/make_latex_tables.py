@@ -39,7 +39,7 @@ def theory_table(paths):
     for r in rows:
         grp[(r["dataset"], float(r["fraction"]))].append(r)
     print(r"\begin{table}[t]\centering\footnotesize")
-    print(r"\caption{\rev{Theory-linked quantities measured with the CHVS4 pipeline "
+    print(r"\caption{\rev{Theory-linked quantities measured with the CHVCoreset pipeline "
           r"(mean$\pm$std over seeds). $\widehat\varepsilon_c$ is the a posteriori "
           r"certificate of Proposition~\ref{prop:certificate}; the gradient error is "
           r"$\|\sum z_i-\sum\gamma_j z_j\|/\|\sum z_i\|$ (Corollary~\ref{cor:end_to_end}). "
