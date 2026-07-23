@@ -69,7 +69,7 @@ proceeds.
 python3 -m venv .venv                 
 source .venv/bin/activate             
 pip install -r requirements.txt       
-
+```
 ---
 
 ## 3. Folder layout
@@ -96,9 +96,9 @@ CHVCoreset-and-CHVCRAIG/
 │   ├── make_latex_tables.py        # Paste-ready LaTeX tables from the CSVs
 │   ├── theory_common.py            # Shared utilities (reuses the real pipeline)
 │   └── run_local.sh                # One-command Windows runner (venv + install + run)
-└── selection_metrics/              # Standalone selection-quality metrics package
-    └── selection_metrics.py        # eps_hat, coverage loss, covering radius under 4 distances
-├── README.md                       # this file
+├── selection_metrics/              # Standalone selection-quality metrics package
+│   └── selection_metrics.py        # eps_hat, coverage loss, covering radius under 4 distances
+└── README.md                       # this file
 ```
 
 `train_logreg_mnist.py`, `train_resnet20_cifar10.py`, and `train_resnet20_svhn.py` write their CSV results
